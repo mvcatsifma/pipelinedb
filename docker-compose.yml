@@ -1,0 +1,35 @@
+version: '3.5'
+
+networks:
+  internal:
+
+services:
+  database:
+    command: [
+      "postgres",
+      "-c", "log_destination=stderr",
+      "-c", "logging_collector=on",
+      "-c", "log_directory=/logs",
+      "-c", "client_min_messages=debug",
+      "-c", "log_min_messages=debug",
+      "-c", "log_min_error_statement=debug",
+#      "-c", "continuous_triggers_enabled=on",
+      "-c", "wal_level=logical",
+      "-c", "max_wal_senders=1",
+      "-c", "max_replication_slots=1"
+    ]
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    image: pipelinedb/pipelinedb-postgresql-11
+    networks:
+      internal:
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./logs:/logs
+
+volumes:
+  pg-data:
