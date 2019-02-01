@@ -55,10 +55,15 @@ CREATE TABLE updated_cvs
 SELECT *
 FROM cv_count_events;
 
+INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+
 SELECT *
 FROM updated_cvs;
 
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+-- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":29}
+-- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":30}
+-- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":31}
+-- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":35}
