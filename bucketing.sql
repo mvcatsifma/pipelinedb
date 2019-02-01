@@ -8,12 +8,21 @@ create foreign table products_stream
   )
   server pipelinedb;
 
-create view recent_products with (sw = '24 hours')
+create view recent_products with (sw = '10 second')
 as
 select product_id, ok, arrival_timestamp
 from products_stream;
 
-create view recent_products_5sec
+-- FIXME: does not work as expected
+create view recent_products_5sec_1
+as
+select date_round((new).arrival_timestamp, '5 seconds')  as bucket_5sec,
+       sum(case when (new).ok = true then 1 else 0 end)  as oks,
+       sum(case when (new).ok = false then 1 else 0 end) as noks
+from output_of('recent_products')
+group by bucket_5sec;
+
+create view recent_products_5sec_2
 as
 select date_round(arrival_timestamp, '5 seconds')  as bucket_5sec,
        sum(case when ok = true then 1 else 0 end)  as oks,
@@ -38,9 +47,13 @@ select *
 from recent_products;
 
 select *
-from recent_products_5sec;
+from recent_products_5sec_1;
 
-drop view recent_products_5sec;
+select *
+from recent_products_5sec_2;
+
+drop view recent_products_5sec_1;
+drop view recent_products_5sec_2;
 drop view recent_products;
 drop foreign table products_stream;
 

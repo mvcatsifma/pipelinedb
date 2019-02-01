@@ -15,7 +15,7 @@ select name,
 from status_updates
 group by name;
 
-create view current_status_deltas
+create view current_status_deltas with (action = materialize)
 as
 select (delta).name,
        (old).ts     as old_ts,
