@@ -1,69 +1,91 @@
-DROP VIEW time_events;
-CREATE FOREIGN TABLE time_events (
+DROP VIEW t_count_events_to_updated_row;
+DROP FUNCTION saveUpdatedCVRows;
+DROP TABLE updated_cv_rows;
+DROP VIEW cv_count_events;
+DROP VIEW t_time_events_add_row_id;
+DROP FOREIGN TABLE s_time_events_with_row_id;
+DROP FOREIGN TABLE s_time_events;
+
+CREATE FOREIGN TABLE s_time_events (
   machine_uuid VARCHAR(255),
   type VARCHAR(255),
   value bigint
   ) SERVER pipelinedb;
 
-DROP VIEW cv_count_events;
-CREATE VIEW cv_count_events WITH (action = materialize)
+CREATE FOREIGN TABLE s_time_events_with_row_id (
+  row_id TEXT,
+  machine_uuid VARCHAR(255),
+  type VARCHAR(255),
+  value BIGINT
+  ) SERVER pipelinedb;
+
+CREATE VIEW t_time_events_add_row_id WITH (action = transform, outputfunc=pipelinedb.insert_into_stream('s_time_events_with_row_id'))
 AS
-SELECT machine_uuid,
+SELECT md5(ROW (machine_uuid, type)::text) as row_id,
+       machine_uuid,
+       type,
+       value
+FROM s_time_events;
+
+CREATE VIEW cv_count_events WITH (action = materialize, sw = '1 minute')
+AS
+SELECT row_id,
+       machine_uuid,
        type,
        count(*)
-FROM time_events
-GROUP BY machine_uuid, type;
+FROM s_time_events_with_row_id
+GROUP BY row_id, machine_uuid, type;
 
-DROP FUNCTION updateCVS;
-CREATE OR REPLACE FUNCTION updateCVS()
+CREATE OR REPLACE FUNCTION saveUpdatedCVRows()
   RETURNS trigger AS
 $$
 BEGIN
-  IF (old) IS null THEN
-    -- INSERT
-    INSERT INTO updated_cvs
-    VALUES (md5(ROW((new).machine_uuid, (new).type)::text), 'I', row_to_json((new)));
-  ELSEIF (new) IS NULL THEN
-    -- DELETE
-    INSERT INTO updated_cvs
-    VALUES (md5(ROW((new).machine_uuid, (new).type)::text), 'D', null);
-  ELSE
-    -- UPDATE
-    INSERT INTO updated_cvs
-    VALUES (md5(ROW((new).machine_uuid, (new).type)::text), 'U', row_to_json((new)));
-  END IF;
+  INSERT INTO updated_cv_rows
+  VALUES (NEW.view_name, NEW.row_id, NEW.op, row_to_json(NEW));
   RETURN NEW;
 END;
 $$
   LANGUAGE plpgsql;
 
-DROP VIEW t_count_events;
-CREATE VIEW t_count_events
-  WITH (action = transform, outputfunc=updateCVS('cv_count_events'))
+CREATE VIEW t_count_events_to_updated_row WITH (action = transform, outputfunc=saveUpdatedCVRows)
 AS
-SELECT (new).machine_uuid, (new).type, (new).count
+SELECT 'cv_count_events'                                                     as view_name,
+       (CASE WHEN (new) IS NOT NULL THEN 'I' ELSE 'D' END)                   AS op,
+       (CASE WHEN (new) IS NOT NULL THEN (new).row_id ELSE (old).row_id END) as row_id,
+       (new).machine_uuid,
+       (new).type,
+       (new).count
 FROM output_of('cv_count_events');
 
-CREATE TABLE updated_cvs
+CREATE TABLE updated_cv_rows
 (
   view_name VARCHAR(255),
-  row_md5   VARCHAR(255),
+  row_id    VARCHAR(255),
   op        VARCHAR(255),
   data      JSONB
 );
 
+
+INSERT INTO s_time_events
+VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO s_time_events
+VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO s_time_events
+VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO s_time_events
+VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+INSERT INTO s_time_events
+VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'operator', 1000);
+
 SELECT *
 FROM cv_count_events;
-
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
-INSERT INTO time_events VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'process', 1000);
+-- returns count of 4
 
 SELECT *
-FROM updated_cvs;
+FROM updated_cv_rows;
+-- returns one row with op 'I' (insert)
 
--- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":29}
--- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":30}
--- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":31}
--- f3b18d5ff77a9d263bc62b8e3569d82f	I	{"machine_uuid":"4580077b-c0e1-56db-8e9c-ea47a8330d87","type":"process","count":35}
+-- wait for at least 1 minute
+SELECT *
+FROM updated_cv_rows;
+-- returns two rows, one with op 'I' (insert) and one with op 'D'
