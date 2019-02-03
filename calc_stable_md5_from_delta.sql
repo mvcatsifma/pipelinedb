@@ -79,13 +79,18 @@ VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'operator', 1000);
 
 SELECT *
 FROM cv_count_events;
--- returns count of 4
+-- returns two rows, one with count 4 and one with count 1
 
 SELECT *
 FROM updated_cv_rows;
--- returns one row with op 'I' (insert)
+-- returns two row with op 'I' (insert)
 
 -- wait for at least 1 minute
 SELECT *
 FROM updated_cv_rows;
--- returns two rows, one with op 'I' (insert) and one with op 'D'
+-- returns four rows, two with op 'I' (insert) and two with op 'D'
+
+-- cv_count_events	f3b18d5ff77a9d263bc62b8e3569d82f	I	{"op": "I", "type": "process", "count": 4, "row_id": "f3b18d5ff77a9d263bc62b8e3569d82f", "view_name": "cv_count_events", "machine_uuid": "4580077b-c0e1-56db-8e9c-ea47a8330d87"}
+-- cv_count_events	974ebcd339d9847a5662a7dc19628069	I	{"op": "I", "type": "operator", "count": 1, "row_id": "974ebcd339d9847a5662a7dc19628069", "view_name": "cv_count_events", "machine_uuid": "4580077b-c0e1-56db-8e9c-ea47a8330d87"}
+-- cv_count_events	974ebcd339d9847a5662a7dc19628069	D	{"op": "D", "type": null, "count": null, "row_id": "974ebcd339d9847a5662a7dc19628069", "view_name": "cv_count_events", "machine_uuid": null}
+-- cv_count_events	f3b18d5ff77a9d263bc62b8e3569d82f	D	{"op": "D", "type": null, "count": null, "row_id": "f3b18d5ff77a9d263bc62b8e3569d82f", "view_name": "cv_count_events", "machine_uuid": null}
