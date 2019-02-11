@@ -41,7 +41,7 @@ CREATE OR REPLACE FUNCTION saveUpdatedCVRows()
 $$
 BEGIN
   INSERT INTO updated_cv_rows
-  VALUES (NEW.view_name, NEW.row_id, NEW.op, row_to_json(NEW));
+  VALUES (NEW.view_name, NEW.row_id, NEW.op, NEW.data);
   RETURN NEW;
 END;
 $$
@@ -50,11 +50,9 @@ $$
 CREATE VIEW t_count_events_to_updated_row WITH (action = transform, outputfunc=saveUpdatedCVRows)
 AS
 SELECT 'cv_count_events'                                                     as view_name,
-       (CASE WHEN (new) IS NOT NULL THEN 'I' ELSE 'D' END)                   AS op,
        (CASE WHEN (new) IS NOT NULL THEN (new).row_id ELSE (old).row_id END) as row_id,
-       (new).machine_uuid,
-       (new).type,
-       (new).count
+       (CASE WHEN (new) IS NOT NULL THEN 'I' ELSE 'D' END)                   AS op,
+        row_to_json(new) as data
 FROM output_of('cv_count_events');
 
 CREATE TABLE updated_cv_rows
@@ -89,8 +87,3 @@ FROM updated_cv_rows;
 SELECT *
 FROM updated_cv_rows;
 -- returns four rows, two with op 'I' (insert) and two with op 'D'
-
--- cv_count_events	f3b18d5ff77a9d263bc62b8e3569d82f	I	{"op": "I", "type": "process", "count": 4, "row_id": "f3b18d5ff77a9d263bc62b8e3569d82f", "view_name": "cv_count_events", "machine_uuid": "4580077b-c0e1-56db-8e9c-ea47a8330d87"}
--- cv_count_events	974ebcd339d9847a5662a7dc19628069	I	{"op": "I", "type": "operator", "count": 1, "row_id": "974ebcd339d9847a5662a7dc19628069", "view_name": "cv_count_events", "machine_uuid": "4580077b-c0e1-56db-8e9c-ea47a8330d87"}
--- cv_count_events	974ebcd339d9847a5662a7dc19628069	D	{"op": "D", "type": null, "count": null, "row_id": "974ebcd339d9847a5662a7dc19628069", "view_name": "cv_count_events", "machine_uuid": null}
--- cv_count_events	f3b18d5ff77a9d263bc62b8e3569d82f	D	{"op": "D", "type": null, "count": null, "row_id": "f3b18d5ff77a9d263bc62b8e3569d82f", "view_name": "cv_count_events", "machine_uuid": null}
