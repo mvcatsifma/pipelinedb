@@ -33,7 +33,7 @@ SELECT row_id,
        machine_uuid,
        type,
        count(*),
-       max(event_timestamp)
+       max(event_timestamp) as last_modified
 FROM s_time_events_with_row_id
 GROUP BY row_id, machine_uuid, type;
 
@@ -50,7 +50,7 @@ VALUES ('4580077b-c0e1-56db-8e9c-ea47a8330d87', 'operator', 1000, current_timest
 
 SELECT row_to_json(r.*)
 FROM (
-       SELECT row_id, machine_uuid, type, count
+       SELECT row_id, machine_uuid, type, count, last_modified
        FROM cv_count_events
      ) r;
 
